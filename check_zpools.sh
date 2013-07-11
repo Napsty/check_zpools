@@ -13,6 +13,7 @@
 # 2013-05-09	Bugfix in exit code handling
 # 2013-05-10	Removed old exit vars (not used anymore)
 # 2013-05-21	Added performance data (percentage used)
+# 2013-07-11	Bugfix in zpool health check
 #########################################################################
 # Set path
 PATH=$PATH:/usr/sbin:/sbin
@@ -75,7 +76,7 @@ then
     elif [[ $CAPACITY -gt $warn && $CAPACITY -lt $crit ]]
     then error[$p]="POOL $POOL usage is WARNING (${CAPACITY}%)"
     elif [ $HEALTH != "ONLINE" ]
-    then error[${p}]=("$POOL health is $HEALTH)"); fcrit=1
+    then error[${p}]="$POOL health is $HEALTH"; fcrit=1
     fi
     perfdata[$p]="$POOL=${CAPACITY}% "
     let p++
