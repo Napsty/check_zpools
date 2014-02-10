@@ -71,9 +71,9 @@ then
   do 
     CAPACITY=$(zpool list -Ho capacity $POOL | awk -F"%" '{print $1}')
     HEALTH=$(zpool list -Ho health $POOL)
-    if [[ $CAPACITY -gt $crit ]]
+    if [[ $CAPACITY -ge $crit ]]
     then error[${p}]="POOL $POOL usage is CRITICAL (${CAPACITY}%)"; fcrit=1
-    elif [[ $CAPACITY -gt $warn && $CAPACITY -lt $crit ]]
+    elif [[ $CAPACITY -ge $warn && $CAPACITY -lt $crit ]]
     then error[$p]="POOL $POOL usage is WARNING (${CAPACITY}%)"
     elif [ $HEALTH != "ONLINE" ]
     then error[${p}]="$POOL health is $HEALTH"; fcrit=1
