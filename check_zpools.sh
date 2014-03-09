@@ -10,11 +10,11 @@
 # 2006-10-04    Updated (no change history known)
 # 2013-02-04    Forked and released
 # 2013-05-08    Make plugin work on different OS, pepp up plugin
-# 2013-05-09	Bugfix in exit code handling
-# 2013-05-10	Removed old exit vars (not used anymore)
-# 2013-05-21	Added performance data (percentage used)
-# 2013-07-11	Bugfix in zpool health check
-# 2014-02-10 Bugfix in threshold comparison
+# 2013-05-09    Bugfix in exit code handling
+# 2013-05-10    Removed old exit vars (not used anymore)
+# 2013-05-21    Added performance data (percentage used)
+# 2013-07-11    Bugfix in zpool health check
+# 2014-02-10    Bugfix in threshold comparison
 #########################################################################
 # Set path
 PATH=$PATH:/usr/sbin:/sbin
