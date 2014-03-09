@@ -14,6 +14,7 @@
 # 2013-05-10	Removed old exit vars (not used anymore)
 # 2013-05-21	Added performance data (percentage used)
 # 2013-07-11	Bugfix in zpool health check
+# 2014-02-10 Bugfix in threshold comparison
 #########################################################################
 # Set path
 PATH=$PATH:/usr/sbin:/sbin
