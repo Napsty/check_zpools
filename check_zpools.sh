@@ -20,7 +20,7 @@
 PATH=$PATH:/usr/sbin:/sbin
 export PATH
 ### Begin vars
-help="check_zpools.sh (c) 2006-2013 several authors\n
+help="check_zpools.sh (c) 2006-2014 several authors\n
 Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent]\n
 Example: $0 -p ALL -w 80 -c 90"
 ### End vars
