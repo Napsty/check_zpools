@@ -29,18 +29,8 @@ export PATH
 ### End vars
 #########################################################################
 help="check_zpools.sh (c) 2006-2014 several authors\n
-Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent]\n
+Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent] [-i inputdir| -o outputdir]\n
 Example: $0 -p ALL -w 80 -c 90"
-#########################################################################
-# Check necessary commands are available
-for cmd in zpool awk [
-do
- if ! `which ${cmd} 1>/dev/null`
- then
- echo "UNKNOWN: ${cmd} does not exist, please check if command exists and PATH is correct"
- exit ${STATE_UNKNOWN}
- fi
-done
 #########################################################################
 # Check for people who need help - aren't we all nice ;-)
 if [ "${1}" = "--help" -o "${#}" = "0" ];
@@ -50,12 +40,14 @@ if [ "${1}" = "--help" -o "${#}" = "0" ];
 fi
 #########################################################################
 # Get user-given variables
-while getopts "p:w:c:" Input;
+while getopts "p:w:c:i:o:" Input;
 do
        case ${Input} in
        p)      pool=${OPTARG};;
        w)      warn=${OPTARG};;
        c)      crit=${OPTARG};;
+       o)      outputdir=${OPTARG};;
+       i)      inputdir=${OPTARG};;
        *)      echo -e $help
                exit $STATE_UNKNOWN
                ;;
@@ -65,52 +57,118 @@ done
 # Did user obey to usage?
 if [ -z $pool ]; then echo -e $help; exit ${STATE_UNKNOWN}; fi
 #########################################################################
+# Check we only have one of -i or -o (or none)
+if [[ -n $inputdir ]] && [[ -n $outputdir ]]; then echo -e $help; exit ${STATE_UNKNOWN}; fi
+if [[ -n $inputdir ]]; then
+    if [ ! -d $inputdir ]; then
+	echo "$inputdir does not exist"
+	exit ${STATE_UNKNOWN}
+    fi
+    poollist=${inputdir}/PoolsList.txt
+    if [[ `find ${poollist} -mmin +30` == ${poollist} ]]
+    then
+	echo "Data is Stale"
+	exit ${STATE_WARNING}
+    fi
+fi
+if [[ -n $outputdir ]]; then
+    if [[ ! -d $outputdir ]]; then
+	echo "$outputdir does not exist"
+	exit ${STATE_UNKNOWN}
+    fi
+fi
+
+#########################################################################
 # Verify threshold sense
 if [[ -n $warn ]] && [[ -z $crit ]]; then echo "Both warning and critical thresholds must be set"; exit $STATE_UNKNOWN; fi
 if [[ -z $warn ]] && [[ -n $crit ]]; then echo "Both warning and critical thresholds must be set"; exit $STATE_UNKNOWN; fi
 if [[ $warn -gt $crit ]]; then echo "Warning threshold cannot be greater than critical"; exit $STATE_UNKNOWN; fi
 #########################################################################
+# Check necessary commands are available
+if [[ -n $inputdir ]]; then cmdlist="[" ; else cmdlist="zpool awk [" ; fi
+for cmd in $cmdlist
+do
+ if ! `which ${cmd} 1>/dev/null`
+ then
+ echo "UNKNOWN: ${cmd} does not exist, please check if command exists and PATH is correct"
+ exit ${STATE_UNKNOWN}
+ fi
+done
+#########################################################################
 # What needs to be checked?
 ## Check all pools
 if [ $pool = "ALL" ]
 then
-  POOLS=($(zpool list -Ho name))
+    
+  if [[ -n $inputdir ]]; then
+      POOLS=`cat ${poollist}`
+  else
+      POOLS=($(zpool list -Ho name))
+  fi
   p=0
+  if [[ -n $outputdir ]]; then
+    echo $POOLS > ${outputdir}/PoolsList.txt
+  fi
   for POOL in ${POOLS[*]}
   do 
-    CAPACITY=$(zpool list -Ho capacity $POOL | awk -F"%" '{print $1}')
-    HEALTH=$(zpool list -Ho health $POOL)
-    # Check with thresholds
-    if [[ -n $warn ]] && [[ -n $crit ]]
-    then
-      if [[ $CAPACITY -ge $crit ]]
-      then error[${p}]="POOL $POOL usage is CRITICAL (${CAPACITY}%)"; fcrit=1
-      elif [[ $CAPACITY -ge $warn && $CAPACITY -lt $crit ]]
-      then error[$p]="POOL $POOL usage is WARNING (${CAPACITY}%)"
-      elif [ $HEALTH != "ONLINE" ]
-      then error[${p}]="$POOL health is $HEALTH"; fcrit=1
-      fi
-    # Check without thresholds
-    else 
-      if [ $HEALTH != "ONLINE" ]
-      then error[${p}]="$POOL health is $HEALTH"; fcrit=1
-      fi
+    if [[ -n $inputdir ]]; then
+      CAPACITY=`cat $inputdir/${POOL}_Capacity.txt`
+      HEALTH=`cat $inputdir/${POOL}_Health.txt`
+    else
+      CAPACITY=$(zpool list -Ho capacity $POOL | awk -F"%" '{print $1}')
+      HEALTH=$(zpool list -Ho health $POOL)
     fi
-    perfdata[$p]="$POOL=${CAPACITY}% "
-    let p++
+    if [[ -n $outputdir ]]; then
+	echo $CAPACITY > $outputdir/${POOL}_Capacity.txt
+	echo $HEALTH > $outputdir/${POOL}_Health.txt
+    else
+      # Check with thresholds
+      if [[ -n $warn ]] && [[ -n $crit ]]
+      then
+        if [[ $CAPACITY -ge $crit ]]
+        then error[${p}]="POOL $POOL usage is CRITICAL (${CAPACITY}%)"; fcrit=1
+        elif [[ $CAPACITY -ge $warn && $CAPACITY -lt $crit ]]
+        then error[$p]="POOL $POOL usage is WARNING (${CAPACITY}%)"
+        elif [ $HEALTH != "ONLINE" ]
+        then error[${p}]="$POOL health is $HEALTH"; fcrit=1
+        fi
+      # Check without thresholds
+      else 
+        if [ $HEALTH != "ONLINE" ]
+        then error[${p}]="$POOL health is $HEALTH"; fcrit=1
+        fi
+      fi
+      perfdata[$p]="$POOL=${CAPACITY}% "
+      let p++
+    fi
   done
 
-  if [[ ${#error[*]} -gt 0 ]]
-  then 
-    if [[ $fcrit -eq 1 ]]; then exit_code=2; else exit_code=1; fi
-    echo "ZFS POOL ALARM: ${error[*]}|${perfdata[*]}"; exit ${exit_code}
-  else echo "ALL ZFS POOLS OK (${POOLS[*]})|${perfdata[*]}"; exit 0
+  if [[ ! -n $outputdir ]]; then
+    if [[ ${#error[*]} -gt 0 ]]
+    then 
+      if [[ $fcrit -eq 1 ]]; then exit_code=2; else exit_code=1; fi
+      echo "ZFS POOL ALARM: ${error[*]}|${perfdata[*]}"; exit ${exit_code}
+    else echo "ALL ZFS POOLS OK (${POOLS[*]})|${perfdata[*]}"; exit 0
+    fi
+  else
+      exit 0
   fi
   
 ## Check single pool
 else 
-  CAPACITY=$(zpool list -Ho capacity $pool | awk -F"%" '{print $1}')
-  HEALTH=$(zpool list -Ho health $pool)
+  if [[ -n $inputdir ]]; then
+    CAPACITY=`cat $inputdir/${pool}_Capacity.txt`
+    HEALTH=`cat $inputdir/${pool}_Health.txt`
+  else
+    CAPACITY=$(zpool list -Ho capacity $pool | awk -F"%" '{print $1}')
+    HEALTH=$(zpool list -Ho health $pool)
+  fi
+
+  if [[ -n $outputdir ]]; then
+    echo $CAPACITY > $outputdir/${pool}_Capacity.txt
+    echo $HEALTH > $outputdir/${pool}_Health.txt
+    exit 0
+  fi
 
   if [[ -n $warn ]] && [[ -n $crit ]]
   then 
