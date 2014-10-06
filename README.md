@@ -10,4 +10,7 @@ Based on my research (http://www.claudiokuenzler.com/blog/345/monitor-zfs-disk-p
 
 You may find a full documentation with examples on:
 http://www.claudiokuenzler.com/nagios-plugins/check_zpools.php
+<<<<<<< HEAD
 .
+=======
+>>>>>>> 576ddfa940626718932e5d45cdbf9c21456a4bad
