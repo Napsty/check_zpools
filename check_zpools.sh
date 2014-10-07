@@ -22,12 +22,12 @@
 # 2014-10-07    Fixed various errors... Too bad, that there are no arrays
 #########################################################################
 ### Begin vars
-STATE_OK=0 # define the exit code if status is OK
-STATE_WARNING=1 # define the exit code if status is Warning
-STATE_CRITICAL=2 # define the exit code if status is Critical
-STATE_UNKNOWN=3 # define the exit code if status is Unknown
+STATE_OK="0" # define the exit code if status is OK
+STATE_WARNING="1" # define the exit code if status is Warning
+STATE_CRITICAL="2" # define the exit code if status is Critical
+STATE_UNKNOWN="3" # define the exit code if status is Unknown
 # Set path
-PATH=$PATH:/usr/sbin:/sbin
+PATH="$PATH:/usr/sbin:/sbin"
 export PATH
 ### End vars
 #########################################################################
@@ -39,14 +39,14 @@ Example: $0 -p ALL -w 80 -c 90\n"
 for cmd in zpool awk [
 do
     # http://stackoverflow.com/questions/592620/how-to-check-if-a-program-exists-from-a-bash-script
-    type $cmd >/dev/null 2>&1 || { echo >&2 "UNKNOWN: ${cmd} does not exist, please check if command exists and PATH is correct"; exit $STATE_UNKNOWN; }
+    type "$cmd" >/dev/null 2>&1 || { echo >&2 "UNKNOWN: ${cmd} does not exist, please check if command exists and PATH is correct"; exit $STATE_UNKNOWN; }
 done
 #########################################################################
 # Check for people who need help - aren't we all nice ;-)
 if [ "${1}" = "--help" -o "${#}" = "0" ];
        then
-       printf "${help}";
-       exit ${STATE_UNKNOWN};
+       printf "${help}"
+       exit "$STATE_UNKNOWN"
 fi
 #########################################################################
 # Get user-given variables
@@ -63,12 +63,12 @@ do
 done
 #########################################################################
 # Did user obey to usage?
-if [ -z $pool ]; then printf "$help"; exit ${STATE_UNKNOWN}; fi
+if [ -z "$pool" ]; then printf "$help"; exit "$STATE_UNKNOWN"; fi
 #########################################################################
 # Verify threshold sense
-if [ -n $warn ] && [ -z $crit ]; then echo "Both warning and critical thresholds must be set"; exit $STATE_UNKNOWN; fi
-if [ -z $warn ] && [ -n $crit ]; then echo "Both warning and critical thresholds must be set"; exit $STATE_UNKNOWN; fi
-if [ $warn -gt $crit ]; then echo "Warning threshold cannot be greater than critical"; exit $STATE_UNKNOWN; fi
+if [ -n "$warn" ] && [ -z "$crit" ]; then echo "Both warning and critical thresholds must be set"; exit "$STATE_UNKNOWN"; fi
+if [ -z "$warn" ] && [ -n "$crit" ]; then echo "Both warning and critical thresholds must be set"; exit "$STATE_UNKNOWN"; fi
+if [ "$warn" -gt "$crit" ]; then echo "Warning threshold cannot be greater than critical"; exit "$STATE_UNKNOWN"; fi
 #########################################################################
 # What needs to be checked?
 ## Check all pools
@@ -86,22 +86,22 @@ if [ $pool = "ALL" ]; then
     fcrit="-1"
     
     # Check with thresholds
-    if [ -n $warn ] && [ -n $crit ]; then
-      if [ $CAPACITY -ge $crit ]; then
+    if [ -n "$warn" ] && [ -n "$crit" ]; then
+      if [ "$CAPACITY" -ge "$crit" ]; then
         eval ` echo $errorNum=\"POOL $POOL usage is CRITICAL \(${CAPACITY}%\)\" `
         fcrit=1
         errorCount=` expr $errorCount + 1 `
-      elif [ $CAPACITY -ge $warn ] && [ $CAPACITY -lt $crit ]; then
+      elif [ "$CAPACITY" -ge "$warn" ] && [ "$CAPACITY" -lt "$crit" ]; then
         eval ` echo $errorNum=\"POOL $POOL usage is WARNING \(${CAPACITY}%\)\" `
         errorCount=` expr $errorCount + 1 `
-      elif [ $HEALTH != "ONLINE" ]; then
+      elif [ "$HEALTH" != "ONLINE" ]; then
         eval ` echo $errorNum=\"$POOL health is $HEALTH\" `
         fcrit=1
         errorCount=` expr $errorCount + 1 `
       fi
     # Check without thresholds
     else 
-      if [ $HEALTH != "ONLINE" ]; then
+      if [ "$HEALTH" != "ONLINE" ]; then
         eval ` echo $errorNum=\"$POOL health is $HEALTH\" `
         fcrit=1
         errorCount=` expr $errorCount + 1 `
@@ -111,16 +111,16 @@ if [ $pool = "ALL" ]; then
     p=` expr $p + 1 `
   done
 
-  if [ $errorCount != 0 ]; then
-    if [ $fcrit -eq 1 ]; then exit_code=$STATE_CRITICAL; else exit_code=$STATE_WARNING; fi
+  if [ "$errorCount" != 0 ]; then
+    if [ "$fcrit" -eq 1 ]; then exit_code=$STATE_CRITICAL; else exit_code=$STATE_WARNING; fi
     printf "ZFS POOL ALARM: "
     poolNum=0
-    while [ $poolNum -le $p ]; do
+    while [ "$poolNum" -le "$p" ]; do
         printf "%s " "` eval echo \\$error$poolNum `"
         poolNum=` expr $poolNum + 1 `
     done | perl -p -e 's, +$,|,'
     poolNum=0
-    while [ $poolNum -le $p ]; do
+    while [ "$poolNum" -le "$p" ]; do
         printf "%s " "` eval echo \\$perfdata$poolNum `"
         poolNum=` expr $poolNum + 1 `
     done | perl -p -e 's, $,,'
@@ -130,7 +130,7 @@ if [ $pool = "ALL" ]; then
     printf "ALL ZFS POOLS OK ("; printf "$POOLS" | tr '\n' ' '; printf ")|"
     
     poolNum=0
-    while [ $poolNum -le $p ]; do
+    while [ "$poolNum" -le "$p" ]; do
         perfdataNum="perfdata$poolNum"
         eval echo \$$perfdataNum
         poolNum=` expr $poolNum + 1 `
@@ -144,17 +144,17 @@ else
   CAPACITY=` zpool list -Ho capacity $pool | awk -F"%" '{print $1}' `
   HEALTH=` zpool list -Ho health $pool `
 
-  if [ -n $warn ] && [ -n $crit ]
+  if [ -n "$warn" ] && [ -n "$crit" ]
   then 
     # Check with thresholds
-    if [ $HEALTH != "ONLINE" ]; then echo "ZFS POOL $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
-    elif [ $CAPACITY -gt $crit ]; then echo "ZFS POOL $pool usage is CRITICAL (${CAPACITY}%|$pool=${CAPACITY}%)"; exit ${STATE_CRITICAL}
-    elif [ $CAPACITY -gt $warn ] && [ $CAPACITY -lt $crit ]; then echo "ZFS POOL $pool usage is WARNING (${CAPACITY}%)|$pool=${CAPACITY}%"; exit ${STATE_WARNING}
+    if [ "$HEALTH" != "ONLINE" ]; then echo "ZFS POOL $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
+    elif [ "$CAPACITY" -gt "$crit" ]; then echo "ZFS POOL $pool usage is CRITICAL (${CAPACITY}%|$pool=${CAPACITY}%)"; exit ${STATE_CRITICAL}
+    elif [ "$CAPACITY" -gt "$warn" ] && [ $CAPACITY -lt $crit ]; then echo "ZFS POOL $pool usage is WARNING (${CAPACITY}%)|$pool=${CAPACITY}%"; exit ${STATE_WARNING}
     else echo "ALL ZFS POOLS OK ($pool)|$pool=${CAPACITY}%"; exit ${STATE_OK}
     fi
   else
     # Check without thresholds
-    if [ $HEALTH != "ONLINE" ]
+    if [ "$HEALTH" != "ONLINE" ]
     then echo "ZFS POOL $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
     else echo "ALL ZFS POOLS OK ($pool)|$pool=${CAPACITY}%"; exit ${STATE_OK}
     fi
@@ -163,5 +163,5 @@ else
 fi
 
 echo "UKNOWN - Should never reach this part"
-exit ${STATE_UNKNOWN}
+exit "$STATE_UNKNOWN"
 # EOF
