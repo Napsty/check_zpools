@@ -84,16 +84,16 @@ if [ $pool = "ALL" ]; then
 
         # Check with thresholds
         if [ -n "$warn" ] && [ -n "$crit" ]; then
-            if [ "$CAPACITY" -ge "$crit" ]; then
+            if [ "$HEALTH" != "ONLINE" ]; then
+                eval ` echo $errorNum=\"$POOL health is $HEALTH\" `
+                fcrit=1
+                errorCount=` expr $errorCount + 1 `
+            elif [ "$CAPACITY" -ge "$crit" ]; then
                 eval ` echo $errorNum=\"POOL $POOL usage is CRITICAL \(${CAPACITY}%\)\" `
                 fcrit=1
                 errorCount=` expr $errorCount + 1 `
             elif [ "$CAPACITY" -ge "$warn" ] && [ "$CAPACITY" -lt "$crit" ]; then
                 eval ` echo $errorNum=\"POOL $POOL usage is WARNING \(${CAPACITY}%\)\" `
-                errorCount=` expr $errorCount + 1 `
-            elif [ "$HEALTH" != "ONLINE" ]; then
-                eval ` echo $errorNum=\"$POOL health is $HEALTH\" `
-                fcrit=1
                 errorCount=` expr $errorCount + 1 `
             fi
         # Check without thresholds
@@ -153,7 +153,7 @@ else
         fi
     else
         # Check without thresholds
-        if [ "$HEALTH" != "ONLINE" ]
+        if [ "$HEALTH" != "ONLINE" ];
         then echo "ZFS POOL $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
         else echo "ALL ZFS POOLS OK ($pool)|$pool=${CAPACITY}%"; exit ${STATE_OK}
         fi
