@@ -36,7 +36,7 @@ Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent]\n
 Example: $0 -p ALL -w 80 -c 90\n"
 #########################################################################
 # Check necessary commands are available
-for cmd in zpool awk [; do
+for cmd in zpool awk tr [; do
     # http://stackoverflow.com/questions/592620/how-to-check-if-a-program-exists-from-a-bash-script
     type "$cmd" >/dev/null 2>&1 || { echo >&2 "UNKNOWN: ${cmd} does not exist, please check if command exists and PATH is correct"; exit $STATE_UNKNOWN; }
 done
@@ -116,13 +116,14 @@ if [ $pool = "ALL" ]; then
         while [ "$poolNum" -le "$p" ]; do
             printf "%s " "` eval echo \\$error$poolNum `"
             poolNum=` expr $poolNum + 1 `
-        done | perl -p -e 's, +$,|,'
+        done
+        printf "|"
 
         poolNum=0
         while [ "$poolNum" -le "$p" ]; do
             printf "%s " "` eval echo \\$perfdata$poolNum `"
             poolNum=` expr $poolNum + 1 `
-        done | perl -p -e 's, $,,'
+        done
 
         echo
         exit "$exit_code"
