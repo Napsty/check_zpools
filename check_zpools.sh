@@ -18,7 +18,8 @@
 # 2013-07-11    Bugfix in zpool health check
 # 2014-02-10    Bugfix in threshold comparison
 # 2014-03-11    Allow plugin to run without enforced thresholds
-# 2014-10-20    Made script Posix compliant - remove bash dependency
+# 2014-10-02    Made script Posix compliant - remove bash dependency
+# 2014-10-07    Fixed various errors... Too bad, that there are no arrays
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
@@ -73,34 +74,35 @@ if [ $warn -gt $crit ]; then echo "Warning threshold cannot be greater than crit
 ## Check all pools
 error=""
 errorCount=0
-if [ $pool = "ALL" ]
-then
+if [ $pool = "ALL" ]; then
   POOLS=` zpool list -Ho name `
   p=0
-  for POOL in $POOLS; do 
+  for POOL in $POOLS; do
+    # Initialize variables, which might be used later on
     CAPACITY=` zpool list -Ho capacity $POOL | awk -F"%" '{print $1}' `
     HEALTH=` zpool list -Ho health $POOL `
     errorNum="error$p"
     perfdataNum="perfdata$p"
+    fcrit="-1"
+    
     # Check with thresholds
-    if [ -n $warn ] && [ -n $crit ]
-    then
+    if [ -n $warn ] && [ -n $crit ]; then
       if [ $CAPACITY -ge $crit ]; then
-        eval ` echo $errorNum="POOL $POOL usage is CRITICAL (${CAPACITY}%)" `
+        eval ` echo $errorNum=\"POOL $POOL usage is CRITICAL \(${CAPACITY}%\)\" `
         fcrit=1
         errorCount=` expr $errorCount + 1 `
       elif [ $CAPACITY -ge $warn ] && [ $CAPACITY -lt $crit ]; then
-        eval ` echo $errorNum="POOL $POOL usage is WARNING (${CAPACITY}%)" `
+        eval ` echo $errorNum=\"POOL $POOL usage is WARNING \(${CAPACITY}%\)\" `
         errorCount=` expr $errorCount + 1 `
       elif [ $HEALTH != "ONLINE" ]; then
-        eval ` echo $errorNum="$POOL health is $HEALTH" `
+        eval ` echo $errorNum=\"$POOL health is $HEALTH\" `
         fcrit=1
         errorCount=` expr $errorCount + 1 `
       fi
     # Check without thresholds
     else 
       if [ $HEALTH != "ONLINE" ]; then
-        eval ` echo $errorNum="$POOL health is $HEALTH" `
+        eval ` echo $errorNum=\"$POOL health is $HEALTH\" `
         fcrit=1
         errorCount=` expr $errorCount + 1 `
       fi
@@ -110,23 +112,21 @@ then
   done
 
   if [ $errorCount != 0 ]; then
-    if [ $fcrit -eq 1 ]; then exit_code=2; else exit_code=1; fi
-    # echo "ZFS POOL ALARM: ${error[*]}|${perfdata[*]}"
+    if [ $fcrit -eq 1 ]; then exit_code=$STATE_CRITICAL; else exit_code=$STATE_WARNING; fi
     printf "ZFS POOL ALARM: "
     poolNum=0
     while [ $poolNum -le $p ]; do
-        printf "%s " "` eval echo \$error$PoolNum `"
+        printf "%s " "` eval echo \\$error$poolNum `"
         poolNum=` expr $poolNum + 1 `
-    done | perl -p -e 's, $,|,'
+    done | perl -p -e 's, +$,|,'
     poolNum=0
     while [ $poolNum -le $p ]; do
-        printf "%s " "` eval echo \$perfdata$PoolNum `"
+        printf "%s " "` eval echo \\$perfdata$poolNum `"
         poolNum=` expr $poolNum + 1 `
     done | perl -p -e 's, $,,'
     echo
-    exit ${exit_code}
+    exit "$exit_code"
   else
-    #echo "ALL ZFS POOLS OK (${POOLS[*]})|${perfdata[*]}"
     printf "ALL ZFS POOLS OK ("; printf "$POOLS" | tr '\n' ' '; printf ")|"
     
     poolNum=0
