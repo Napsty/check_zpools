@@ -49,12 +49,12 @@ fi
 #########################################################################
 # Get user-given variables
 while getopts "p:w:c:" Input; do
-    case ${Input} in
-    p)  pool=${OPTARG};;
-    w)  warn=${OPTARG};;
-    c)  crit=${OPTARG};;
+    case $Input in
+    p)  pool="$OPTARG";;
+    w)  warn="$OPTARG";;
+    c)  crit="$OPTARG";;
     *)  printf "$help"
-        exit $STATE_UNKNOWN
+        exit "$STATE_UNKNOWN"
         ;;
     esac
 done
@@ -89,11 +89,11 @@ if [ $pool = "ALL" ]; then
                 fcrit=1
                 errorCount=` expr $errorCount + 1 `
             elif [ "$CAPACITY" -ge "$crit" ]; then
-                eval ` echo $errorNum=\"POOL $POOL usage is CRITICAL \(${CAPACITY}%\)\" `
+                eval ` echo $errorNum=\"POOL $POOL usage is CRITICAL \($CAPACITY%\)\" `
                 fcrit=1
                 errorCount=` expr $errorCount + 1 `
             elif [ "$CAPACITY" -ge "$warn" ] && [ "$CAPACITY" -lt "$crit" ]; then
-                eval ` echo $errorNum=\"POOL $POOL usage is WARNING \(${CAPACITY}%\)\" `
+                eval ` echo $errorNum=\"POOL $POOL usage is WARNING \($CAPACITY%\)\" `
                 errorCount=` expr $errorCount + 1 `
             fi
         # Check without thresholds
@@ -105,12 +105,13 @@ if [ $pool = "ALL" ]; then
             fi
         fi
         eval ` echo $perfdataNum="$POOL=${CAPACITY}% " `
-        p=` expr $p + 1 `
+        p=` expr "$p" + 1 `
     done
 
     if [ "$errorCount" != 0 ]; then
-        if [ "$fcrit" -eq 1 ]; then exit_code=$STATE_CRITICAL; else exit_code=$STATE_WARNING; fi
+        if [ "$fcrit" -eq 1 ]; then exit_code="$STATE_CRITICAL"; else exit_code="$STATE_WARNING"; fi
         printf "ZFS POOL ALARM: "
+
         poolNum=0
         while [ "$poolNum" -le "$p" ]; do
             printf "%s " "` eval echo \\$error$poolNum `"
@@ -146,16 +147,15 @@ else
 
     if [ -n "$warn" ] && [ -n "$crit" ]; then
         # Check with thresholds
-        if [ "$HEALTH" != "ONLINE" ]; then echo "ZFS POOL $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
-        elif [ "$CAPACITY" -gt "$crit" ]; then echo "ZFS POOL $pool usage is CRITICAL (${CAPACITY}%|$pool=${CAPACITY}%)"; exit ${STATE_CRITICAL}
-        elif [ "$CAPACITY" -gt "$warn" ] && [ $CAPACITY -lt $crit ]; then echo "ZFS POOL $pool usage is WARNING (${CAPACITY}%)|$pool=${CAPACITY}%"; exit ${STATE_WARNING}
-        else echo "ALL ZFS POOLS OK ($pool)|$pool=${CAPACITY}%"; exit ${STATE_OK}
+        if [ "$HEALTH" != "ONLINE" ]; then echo "ZFS POOL $pool health is $HEALTH|$pool=$CAPACITY%"; exit "$STATE_CRITICAL"
+        elif [ "$CAPACITY" -gt "$crit" ]; then echo "ZFS POOL $pool usage is CRITICAL ($CAPACITY%|$pool=$CAPACITY%)"; exit "$STATE_CRITICAL"
+        elif [ "$CAPACITY" -gt "$warn" ] && [ "$CAPACITY" -lt "$crit" ]; then echo "ZFS POOL $pool usage is WARNING ($CAPACITY%)|$pool=$CAPACITY%"; exit "$STATE_WARNING"
+        else echo "ALL ZFS POOLS OK ($pool)|$pool=$CAPACITY%"; exit "$STATE_OK"
         fi
     else
         # Check without thresholds
-        if [ "$HEALTH" != "ONLINE" ];
-        then echo "ZFS POOL $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
-        else echo "ALL ZFS POOLS OK ($pool)|$pool=${CAPACITY}%"; exit ${STATE_OK}
+        if [ "$HEALTH" != "ONLINE" ]; then echo "ZFS POOL $pool health is $HEALTH|$pool=$CAPACITY%"; exit "$STATE_CRITICAL"
+        else echo "ALL ZFS POOLS OK ($pool)|$pool=$CAPACITY%"; exit "$STATE_OK"
         fi
     fi
 fi
