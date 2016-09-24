@@ -75,6 +75,10 @@ if [[ $warn -gt $crit ]]; then echo "Warning threshold cannot be greater than cr
 if [ $pool = "ALL" ]
 then
   POOLS=($(zpool list -Ho name))
+  if [[ -z "$POOLS" ]]; then
+    echo "UNKNOWN: No pools found! (do we have permission?)"
+    exit $STATE_UNKNOWN
+  fi
   p=0
   for POOL in ${POOLS[*]}
   do 
