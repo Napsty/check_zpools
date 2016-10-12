@@ -132,5 +132,5 @@ else
 
 fi
 
-echo "UKNOWN - Should never reach this part"
+echo "UNKNOWN - Should never reach this part"
 exit ${STATE_UNKNOWN}
