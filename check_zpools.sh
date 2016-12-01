@@ -82,9 +82,6 @@ then
   for POOL in ${POOLS[*]}
   do 
     CAPACITY=$(zpool list -Ho capacity $POOL | awk -F"%" '{print $1}')
-    if [ $? -ne 0 ]; then
-      echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
-    fi
     HEALTH=$(zpool list -Ho health $POOL)
     if [ $? -ne 0 ]; then
       echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
@@ -118,9 +115,9 @@ then
   
 ## Check single pool
 else 
-  CAPACITY=$(zpool list -Ho capacity $pool | awk -F"%" '{print $1}')
-  if [ $? -ne 0 ]; then
-    echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
+  CAPACITY=$(zpool list -Ho capacity $pool 2>&1 | awk -F"%" '{print $1}')
+  if echo "${CAPACITY}" | egrep -q 'no such pool$'; then
+    echo "zpool $pool does not exist"; exit $STATE_CRITICAL
   fi
   HEALTH=$(zpool list -Ho health $pool)
   if [ $? -ne 0 ]; then
