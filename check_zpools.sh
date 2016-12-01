@@ -75,11 +75,20 @@ if [[ $warn -gt $crit ]]; then echo "Warning threshold cannot be greater than cr
 if [ $pool = "ALL" ]
 then
   POOLS=($(zpool list -Ho name))
+  if [ $? -ne 0 ]; then
+    echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
+  fi
   p=0
   for POOL in ${POOLS[*]}
   do 
     CAPACITY=$(zpool list -Ho capacity $POOL | awk -F"%" '{print $1}')
+    if [ $? -ne 0 ]; then
+      echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
+    fi
     HEALTH=$(zpool list -Ho health $POOL)
+    if [ $? -ne 0 ]; then
+      echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
+    fi
     # Check with thresholds
     if [[ -n $warn ]] && [[ -n $crit ]]
     then
@@ -110,7 +119,13 @@ then
 ## Check single pool
 else 
   CAPACITY=$(zpool list -Ho capacity $pool | awk -F"%" '{print $1}')
+  if [ $? -ne 0 ]; then
+    echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
+  fi
   HEALTH=$(zpool list -Ho health $pool)
+  if [ $? -ne 0 ]; then
+    echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
+  fi
 
   if [[ -n $warn ]] && [[ -n $crit ]]
   then 
