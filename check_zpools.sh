@@ -6,7 +6,8 @@
 #               Vitaliy Gladkevitch   Forked (2013-02-04)
 #               Claudio Kuenzler      Complete redo, perfdata, etc (2013-2014)
 #               Per von Zweigbergk    Various fix-ups (2016-10-12)
-# Doc:          http://www.claudiokuenzler.com/nagios-plugins/check_zpools.php
+#               @waoki                Trap zpool command errors (2022-03-01)
+# Doc:          http://www.claudiokuenzler.com/monitoring-plugins/check_zpools.php
 # History:
 # 2006-09-01    Original first version
 # 2006-10-04    Updated (no change history known)
@@ -19,6 +20,7 @@
 # 2014-02-10    Bugfix in threshold comparison
 # 2014-03-11    Allow plugin to run without enforced thresholds
 # 2016-10-12    Fixed incorrect shell quoting and typos
+# 2022-03-01	Merge PR #10, manually solve conflicts
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
@@ -44,7 +46,7 @@ do
  fi
 done
 #########################################################################
-# Check for people who need help - aren't we all nice ;-)
+# Check for people who need help - we are nice ;-)
 if [ "${1}" = "--help" ] || [ "${#}" = "0" ];
        then
        echo -e "${help}";
@@ -77,11 +79,17 @@ if [[ $warn -gt $crit ]]; then echo "Warning threshold cannot be greater than cr
 if [ "$pool" = "ALL" ]
 then
   POOLS=($(zpool list -Ho name))
+  if [ $? -ne 0 ]; then
+    echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
+  fi
   p=0
   for POOL in ${POOLS[*]}
   do
     CAPACITY=$(zpool list -Ho capacity "$POOL" | awk -F"%" '{print $1}')
     HEALTH=$(zpool list -Ho health "$POOL")
+    if [ $? -ne 0 ]; then
+      echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
+    fi
     # Check with thresholds
     if [[ -n $warn ]] && [[ -n $crit ]]
     then
@@ -111,8 +119,14 @@ then
 
 ## Check single pool
 else
-  CAPACITY=$(zpool list -Ho capacity "$pool" | awk -F"%" '{print $1}')
+  CAPACITY=$(zpool list -Ho capacity "$pool" 2>&1 | awk -F"%" '{print $1}')
+  if [[ -n $(echo "${CAPACITY}" | egrep -q 'no such pool$') ]]; then
+    echo "zpool $pool does not exist"; exit $STATE_CRITICAL
+  fi
   HEALTH=$(zpool list -Ho health "$pool")
+  if [ $? -ne 0 ]; then
+    echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
+  fi
 
   if [[ -n $warn ]] && [[ -n $crit ]]
   then
