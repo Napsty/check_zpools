@@ -5,7 +5,7 @@
 # Authors:      Aldo Fabi             First version (2006-09-01)
 #               Vitaliy Gladkevitch   Forked (2013-02-04)
 #               Claudio Kuenzler      Complete redo, perfdata, etc (2013-2014)
-#               Per von Zweigbergk    Various fix-ups (2016-10-12)
+#               Per von Zweigbergk    Various fixes (2016-10-12)
 #               @waoki                Trap zpool command errors (2022-03-01)
 # Doc:          http://www.claudiokuenzler.com/monitoring-plugins/check_zpools.php
 # History:
@@ -32,7 +32,7 @@ PATH=$PATH:/usr/sbin:/sbin
 export PATH
 ### End vars
 #########################################################################
-help="check_zpools.sh (c) 2006-2014 several authors\n
+help="check_zpools.sh (c) 2006-2022 several authors\n
 Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent]\n
 Example: $0 -p ALL -w 80 -c 90"
 #########################################################################
