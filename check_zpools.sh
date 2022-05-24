@@ -21,6 +21,7 @@
 # 2014-03-11    Allow plugin to run without enforced thresholds
 # 2016-10-12    Fixed incorrect shell quoting and typos
 # 2022-03-01	Merge PR #10, manually solve conflicts
+# 2022-05-24    Removed need for 'awk', using bash-functions instead
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
@@ -37,7 +38,7 @@ Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent]\n
 Example: $0 -p ALL -w 80 -c 90"
 #########################################################################
 # Check necessary commands are available
-for cmd in zpool awk [
+for cmd in zpool [
 do
  if ! which "$cmd" 1>/dev/null
  then
@@ -85,7 +86,8 @@ then
   p=0
   for POOL in ${POOLS[*]}
   do
-    CAPACITY=$(zpool list -Ho capacity "$POOL" | awk -F"%" '{print $1}')
+    CAPACITY=$(zpool list -Ho capacity "$POOL")
+    CAPACITY=${CAPACITY%\%}
     HEALTH=$(zpool list -Ho health "$POOL")
     if [ $? -ne 0 ]; then
       echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
@@ -119,7 +121,8 @@ then
 
 ## Check single pool
 else
-  CAPACITY=$(zpool list -Ho capacity "$pool" 2>&1 | awk -F"%" '{print $1}')
+  CAPACITY=$(zpool list -Ho capacity "$pool" 2>&1 )
+  CAPACITY=${CAPACITY%\%}
   if [[ -n $(echo "${CAPACITY}" | egrep -q 'no such pool$') ]]; then
     echo "zpool $pool does not exist"; exit $STATE_CRITICAL
   fi
