@@ -7,6 +7,7 @@
 #               Claudio Kuenzler      Complete redo, perfdata, etc (2013-2014)
 #               Per von Zweigbergk    Various fixes (2016-10-12)
 #               @waoki                Trap zpool command errors (2022-03-01)
+#               @mrdsam               Improvement (2022-05-24)
 # Doc:          http://www.claudiokuenzler.com/monitoring-plugins/check_zpools.php
 # History:
 # 2006-09-01    Original first version
@@ -20,7 +21,7 @@
 # 2014-02-10    Bugfix in threshold comparison
 # 2014-03-11    Allow plugin to run without enforced thresholds
 # 2016-10-12    Fixed incorrect shell quoting and typos
-# 2022-03-01	Merge PR #10, manually solve conflicts
+# 2022-03-01    Merge PR #10, manually solve conflicts
 # 2022-05-24    Removed need for 'awk', using bash-functions instead
 #########################################################################
 ### Begin vars
@@ -33,7 +34,7 @@ PATH=$PATH:/usr/sbin:/sbin
 export PATH
 ### End vars
 #########################################################################
-help="check_zpools.sh (c) 2006-2022 several authors\n
+help="check_zpools.sh (c) 2006-2022 multiple authors\n
 Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent]\n
 Example: $0 -p ALL -w 80 -c 90"
 #########################################################################
