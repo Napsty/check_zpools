@@ -1,28 +1,29 @@
 #!/usr/bin/env bash
 #########################################################################
-# Script:       check_zpools.sh
-# Purpose:      Nagios plugin to monitor status of zfs pool
-# Authors:      Aldo Fabi             First version (2006-09-01)
-#               Vitaliy Gladkevitch   Forked (2013-02-04)
-#               Claudio Kuenzler      Complete redo, perfdata, etc (2013-2014)
-#               Per von Zweigbergk    Various fixes (2016-10-12)
-#               @waoki                Trap zpool command errors (2022-03-01)
-#               @mrdsam               Improvement (2022-05-24)
-# Doc:          http://www.claudiokuenzler.com/monitoring-plugins/check_zpools.php
+# Script:     check_zpools.sh
+# Purpose:    Nagios plugin to monitor status of zfs pool
+# Authors:    Aldo Fabi             First version (2006-09-01)
+#             Vitaliy Gladkevitch   Forked (2013-02-04)
+#             Claudio Kuenzler      Complete redo, perfdata, etc (2013-2023)
+#             Per von Zweigbergk    Various fixes (2016-10-12)
+#             @waoki                Trap zpool command errors (2022-03-01)
+#             @mrdsam               Improvement (2022-05-24)
+# Doc:        http://www.claudiokuenzler.com/monitoring-plugins/check_zpools.php
 # History:
-# 2006-09-01    Original first version
-# 2006-10-04    Updated (no change history known)
-# 2013-02-04    Forked and released
-# 2013-05-08    Make plugin work on different OS, pepp up plugin
-# 2013-05-09    Bugfix in exit code handling
-# 2013-05-10    Removed old exit vars (not used anymore)
-# 2013-05-21    Added performance data (percentage used)
-# 2013-07-11    Bugfix in zpool health check
-# 2014-02-10    Bugfix in threshold comparison
-# 2014-03-11    Allow plugin to run without enforced thresholds
-# 2016-10-12    Fixed incorrect shell quoting and typos
-# 2022-03-01    Merge PR #10, manually solve conflicts
-# 2022-05-24    Removed need for 'awk', using bash-functions instead
+# 2006-09-01  Original first version
+# 2006-10-04  Updated (no change history known)
+# 2013-02-04  Forked and released
+# 2013-05-08  Make plugin work on different OS, pepp up plugin
+# 2013-05-09  Bugfix in exit code handling
+# 2013-05-10  Removed old exit vars (not used anymore)
+# 2013-05-21  Added performance data (percentage used)
+# 2013-07-11  Bugfix in zpool health check
+# 2014-02-10  Bugfix in threshold comparison
+# 2014-03-11  Allow plugin to run without enforced thresholds
+# 2016-10-12  Fixed incorrect shell quoting and typos
+# 2022-03-01  Merge PR #10, manually solve conflicts
+# 2022-05-24  Removed need for 'awk', using bash-functions instead
+# 2023-02-15  Bugfix in single pool CRITICAL output (issue #13)
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
@@ -34,7 +35,7 @@ PATH=$PATH:/usr/sbin:/sbin
 export PATH
 ### End vars
 #########################################################################
-help="check_zpools.sh (c) 2006-2022 multiple authors\n
+help="check_zpools.sh (c) 2006-2023 multiple authors\n
 Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent]\n
 Example: $0 -p ALL -w 80 -c 90"
 #########################################################################
@@ -136,7 +137,7 @@ else
   then
     # Check with thresholds
     if [ "$HEALTH" != "ONLINE" ]; then echo "ZFS POOL $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
-    elif [[ $CAPACITY -ge $crit ]]; then echo "ZFS POOL $pool usage is CRITICAL (${CAPACITY}%|$pool=${CAPACITY}%)"; exit ${STATE_CRITICAL}
+    elif [[ $CAPACITY -ge $crit ]]; then echo "ZFS POOL $pool usage is CRITICAL (${CAPACITY}%)|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
     elif [[ $CAPACITY -ge $warn && $CAPACITY -lt $crit ]]; then echo "ZFS POOL $pool usage is WARNING (${CAPACITY}%)|$pool=${CAPACITY}%"; exit ${STATE_WARNING}
     else echo "ALL ZFS POOLS OK ($pool)|$pool=${CAPACITY}%"; exit ${STATE_OK}
     fi
