@@ -8,6 +8,7 @@
 #             Per von Zweigbergk    Various fixes (2016-10-12)
 #             @waoki                Trap zpool command errors (2022-03-01)
 #             @mrdsam               Improvement (2022-05-24)
+#	      @kresike              Improvement (2023-02-22)
 # Doc:        http://www.claudiokuenzler.com/monitoring-plugins/check_zpools.php
 # History:
 # 2006-09-01  Original first version
@@ -24,6 +25,7 @@
 # 2022-03-01  Merge PR #10, manually solve conflicts
 # 2022-05-24  Removed need for 'awk', using bash-functions instead
 # 2023-02-15  Bugfix in single pool CRITICAL output (issue #13)
+# 2023-02-22  Improve message consistency and display all issues found in pool
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
@@ -97,13 +99,9 @@ then
     # Check with thresholds
     if [[ -n $warn ]] && [[ -n $crit ]]
     then
-      if [[ $CAPACITY -ge $crit ]]
-      then error[${p}]="POOL $POOL usage is CRITICAL (${CAPACITY}%)"; fcrit=1
-      elif [[ $CAPACITY -ge $warn && $CAPACITY -lt $crit ]]
-      then error[$p]="POOL $POOL usage is WARNING (${CAPACITY}%)"
-      elif [ "$HEALTH" != "ONLINE" ]
-      then error[${p}]="$POOL health is $HEALTH"; fcrit=1
-      fi
+      if [ "$HEALTH" != "ONLINE" ]; then error[${p}]="$POOL health is $HEALTH "; fcrit=1; fi
+      if [[ $CAPACITY -ge $crit ]]; then error[${p}]+="POOL $POOL usage is CRITICAL (${CAPACITY}%) "; fcrit=1; fi
+      if [[ $CAPACITY -ge $warn && $CAPACITY -lt $crit ]]; then error[$p]+="POOL $POOL usage is WARNING (${CAPACITY}%)"; fi
     # Check without thresholds
     else
       if [ "$HEALTH" != "ONLINE" ]
@@ -135,16 +133,19 @@ else
 
   if [[ -n $warn ]] && [[ -n $crit ]]
   then
+    warning=0
+    critical=0
     # Check with thresholds
-    if [ "$HEALTH" != "ONLINE" ]; then echo "ZFS POOL $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
-    elif [[ $CAPACITY -ge $crit ]]; then echo "ZFS POOL $pool usage is CRITICAL (${CAPACITY}%)|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
-    elif [[ $CAPACITY -ge $warn && $CAPACITY -lt $crit ]]; then echo "ZFS POOL $pool usage is WARNING (${CAPACITY}%)|$pool=${CAPACITY}%"; exit ${STATE_WARNING}
-    else echo "ALL ZFS POOLS OK ($pool)|$pool=${CAPACITY}%"; exit ${STATE_OK}
-    fi
+    if [ "$HEALTH" != "ONLINE" ]; then error="$pool health is $HEALTH "; critical=1 ; fi
+    if [[ $CAPACITY -ge $crit ]]; then error+="$pool usage is CRITICAL (${CAPACITY}%) "; critical=1; fi
+    if [[ $CAPACITY -ge $warn && $CAPACITY -lt $crit ]]; then error+="ZFS POOL ALARM: $pool usage is WARNING (${CAPACITY}%) "; warning=1; fi
+    if [[ $critical -gt 0 ]]; then echo "ZFS POOL ALARM: ${error[*]}|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}; fi
+    if [[ $warning -gt 0 ]]; then echo "ZFS POOL ALARM: ${error[*]}|$pool=${CAPACITY}%"; exit ${STATE_WARNING}; fi
+    echo "ALL ZFS POOLS OK ($pool)|$pool=${CAPACITY}%"; exit ${STATE_OK}
   else
     # Check without thresholds
     if [ "$HEALTH" != "ONLINE" ]
-    then echo "ZFS POOL $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
+    then echo "ZFS POOL ALARM: $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
     else echo "ALL ZFS POOLS OK ($pool)|$pool=${CAPACITY}%"; exit ${STATE_OK}
     fi
   fi
