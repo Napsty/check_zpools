@@ -36,7 +36,7 @@ export PATH
 ### End vars
 #########################################################################
 help="check_zpools.sh (c) 2006-2023 multiple authors\n
-Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent]\n
+Usage: $0 -p (poolname1,poolname2|ALL) [-w warnpercent] [-c critpercent]\n
 Example: $0 -p ALL -w 80 -c 90"
 #########################################################################
 # Check necessary commands are available
@@ -77,78 +77,77 @@ if [[ -n $warn ]] && [[ -z $crit ]]; then echo "Both warning and critical thresh
 if [[ -z $warn ]] && [[ -n $crit ]]; then echo "Both warning and critical thresholds must be set"; exit $STATE_UNKNOWN; fi
 if [[ $warn -gt $crit ]]; then echo "Warning threshold cannot be greater than critical"; exit $STATE_UNKNOWN; fi
 #########################################################################
+
+function pool_status() {
+  health=$(zpool list -Ho health "$1" 2>&1)
+  [[ $? -ne 0 ]] && { echo "UNKNOWN Invalid pool ${1}"; return $STATE_UNKNOWN; }
+
+  capacity=$(pool_capacity "$1")
+  [[ $? -ne 0 ]] && { echo "$1"; return $STATE_CRITICAL; }
+
+  # Check with thresholds
+  if [[ -n $warn ]] && [[ -n $crit ]]; then
+    if [[ $capacity -ge $crit ]]; then
+      echo "POOL ${1} usage is CRITICAL (${capacity}%)"; return $STATE_CRITICAL
+    elif [[ $capacity -ge $warn && $capacity -lt $crit ]]; then
+      echo "POOL ${1} usage is WARNING (${capacity}%)" ; return $STATE_WARNING
+    elif [ "$health" != "ONLINE" ]; then
+      echo "$1 health is $health"; return $STATE_CRITICAL
+    fi
+  # Check without thresholds
+  else
+    if [ "$health" != "ONLINE" ]; then
+      echo "${1} health is ${health}"; return $STATE_CRITICAL
+    fi
+  fi
+
+  return $STATE_OK
+}
+
+function pool_capacity() {
+  capacity=$(zpool list -Ho capacity "${1}" 2>&1)
+  capacity=${capacity%\%}
+  if [[ -n $(echo "${capacity}" | egrep -q 'no such pool$') ]]; then
+    echo "zpool ${pool} does not exist"; return $STATE_CRITICAL
+  fi
+
+  echo "$capacity"
+}
+
 # What needs to be checked?
-## Check all pools
-if [ "$pool" = "ALL" ]
-then
+if [ "$pool" = "ALL" ]; then
   POOLS=($(zpool list -Ho name))
   if [ $? -ne 0 ]; then
     echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
   fi
-  p=0
-  for POOL in ${POOLS[*]}
-  do
-    CAPACITY=$(zpool list -Ho capacity "$POOL")
-    CAPACITY=${CAPACITY%\%}
-    HEALTH=$(zpool list -Ho health "$POOL")
-    if [ $? -ne 0 ]; then
-      echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
-    fi
-    # Check with thresholds
-    if [[ -n $warn ]] && [[ -n $crit ]]
-    then
-      if [[ $CAPACITY -ge $crit ]]
-      then error[${p}]="POOL $POOL usage is CRITICAL (${CAPACITY}%)"; fcrit=1
-      elif [[ $CAPACITY -ge $warn && $CAPACITY -lt $crit ]]
-      then error[$p]="POOL $POOL usage is WARNING (${CAPACITY}%)"
-      elif [ "$HEALTH" != "ONLINE" ]
-      then error[${p}]="$POOL health is $HEALTH"; fcrit=1
-      fi
-    # Check without thresholds
-    else
-      if [ "$HEALTH" != "ONLINE" ]
-      then error[${p}]="$POOL health is $HEALTH"; fcrit=1
-      fi
-    fi
-    perfdata[$p]="$POOL=${CAPACITY}% "
-    let p++
-  done
-
-  if [[ ${#error[*]} -gt 0 ]]
-  then
-    if [[ $fcrit -eq 1 ]]; then exit_code=2; else exit_code=1; fi
-    echo "ZFS POOL ALARM: ${error[*]}|${perfdata[*]}"; exit ${exit_code}
-  else echo "ALL ZFS POOLS OK (${POOLS[*]})|${perfdata[*]}"; exit 0
-  fi
-
-## Check single pool
 else
-  CAPACITY=$(zpool list -Ho capacity "$pool" 2>&1 )
-  CAPACITY=${CAPACITY%\%}
-  if [[ -n $(echo "${CAPACITY}" | egrep -q 'no such pool$') ]]; then
-    echo "zpool $pool does not exist"; exit $STATE_CRITICAL
+  # Comma separated list
+  POOLS=($(tr ',' ' ' <<< $pool))
+fi
+
+# Check selected pools
+p=0
+for POOL in ${POOLS[*]}; do
+  error=$(pool_status "${POOL}")
+  ret=$?
+  if [[ "$ret" -eq "$STATE_UNKNOWN" ]]; then
+    echo "$error"; exit $ret
+  elif [[ "$ret" -eq "$STATE_CRITICAL" ]]; then
+    fcrit=1
   fi
-  HEALTH=$(zpool list -Ho health "$pool")
-  if [ $? -ne 0 ]; then
-    echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
+  if [[ "$ret" -gt 0 ]]; then
+    errors[${p}]="$error"
   fi
 
-  if [[ -n $warn ]] && [[ -n $crit ]]
-  then
-    # Check with thresholds
-    if [ "$HEALTH" != "ONLINE" ]; then echo "ZFS POOL $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
-    elif [[ $CAPACITY -ge $crit ]]; then echo "ZFS POOL $pool usage is CRITICAL (${CAPACITY}%)|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
-    elif [[ $CAPACITY -ge $warn && $CAPACITY -lt $crit ]]; then echo "ZFS POOL $pool usage is WARNING (${CAPACITY}%)|$pool=${CAPACITY}%"; exit ${STATE_WARNING}
-    else echo "ALL ZFS POOLS OK ($pool)|$pool=${CAPACITY}%"; exit ${STATE_OK}
-    fi
-  else
-    # Check without thresholds
-    if [ "$HEALTH" != "ONLINE" ]
-    then echo "ZFS POOL $pool health is $HEALTH|$pool=${CAPACITY}%"; exit ${STATE_CRITICAL}
-    else echo "ALL ZFS POOLS OK ($pool)|$pool=${CAPACITY}%"; exit ${STATE_OK}
-    fi
-  fi
+  perfdata[$p]="${POOL}=$(pool_capacity ${POOL})% "
+  let p++
+done
 
+# Process potential pool errors
+if [[ ${#errors[*]} -gt 0 ]]; then
+  if [[ $fcrit -eq 1 ]]; then exit_code=2; else exit_code=1; fi
+  echo "ZFS POOL ALARM: ${errors[*]}|${perfdata[*]}"; exit ${exit_code}
+else echo "ALL ZFS POOLS OK (${POOLS[*]})|${perfdata[*]}"; exit 0
 fi
 
 echo "UNKNOWN - Should never reach this part"
