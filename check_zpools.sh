@@ -36,7 +36,7 @@ export PATH
 ### End vars
 #########################################################################
 help="check_zpools.sh (c) 2006-2023 multiple authors\n
-Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent]\n
+Usage: $0 -p (poolname1,poolname2|ALL) [-w warnpercent] [-c critpercent]\n
 Example: $0 -p ALL -w 80 -c 90"
 #########################################################################
 # Check necessary commands are available
@@ -121,7 +121,8 @@ if [ "$pool" = "ALL" ]; then
     echo "UNKNOWN zpool query failed"; exit $STATE_UNKNOWN
   fi
 else
-  POOLS=("$pool")
+  # Comma separated list
+  POOLS=($(tr ',' ' ' <<< $pool))
 fi
 
 # Check selected pools
