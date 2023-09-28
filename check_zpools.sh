@@ -2,15 +2,31 @@
 #########################################################################
 # Script:     check_zpools.sh
 # Purpose:    Nagios plugin to monitor status of zfs pool
-# Authors:    Aldo Fabi             First version (2006-09-01)
-#             Vitaliy Gladkevitch   Forked (2013-02-04)
-#             Claudio Kuenzler      Complete redo, perfdata, etc (2013-2023)
-#             Per von Zweigbergk    Various fixes (2016-10-12)
-#             @waoki                Trap zpool command errors (2022-03-01)
-#             @mrdsam               Improvement (2022-05-24)
-#	      @kresike              Improvement (2023-02-22)
 # Doc:        http://www.claudiokuenzler.com/monitoring-plugins/check_zpools.php
-# History:
+# Licence:    GNU General Public Licence (GPL) v2 http://www.gnu.org/
+#########################################################################
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <https://www.gnu.org/licenses/>.
+#########################################################################
+# Copyright (c) 2006 Aldo Fabi - First version (2006-09-01)
+# Copyright (c) 2013 Vitaliy Gladkevitch - Forked (2013-02-04)
+# Copyright (c) 2013-2023 Claudio Kuenzler - Current maintainer
+# Copyright (c) 2016 Per von Zweigbergk - Various fixes (2016-10-12)
+# Copyright (c) 2022 @waoki - Trap zpool command errors (2022-03-01)
+# Copyright (c) 2022 @mrdsam - Improvement (2022-05-24)
+# Copyright (c) 2023 @kresike - Improvement (2023-02-22)
+#########################################################################
+# History/Changelog:
 # 2006-09-01  Original first version
 # 2006-10-04  Updated (no change history known)
 # 2013-02-04  Forked and released
@@ -26,6 +42,7 @@
 # 2022-05-24  Removed need for 'awk', using bash-functions instead
 # 2023-02-15  Bugfix in single pool CRITICAL output (issue #13)
 # 2023-02-22  Improve message consistency and display all issues found in pool
+# 2023-09-28  Add license
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
