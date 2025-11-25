@@ -25,6 +25,7 @@
 # Copyright (c) 2022 @waoki - Trap zpool command errors (2022-03-01)
 # Copyright (c) 2022 @mrdsam - Improvement (2022-05-24)
 # Copyright (c) 2023 @kresike - Improvement (2023-02-22)
+# Copyright (c) 2025 @amahr - Add soft fail option (2025-11-25)
 #########################################################################
 # History/Changelog:
 # 2006-09-01  Original first version
@@ -43,20 +44,24 @@
 # 2023-02-15  Bugfix in single pool CRITICAL output (issue #13)
 # 2023-02-22  Improve message consistency and display all issues found in pool
 # 2023-09-28  Add license
+# 2025-11-25  Add soft fail option
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
 STATE_WARNING=1 # define the exit code if status is Warning
 STATE_CRITICAL=2 # define the exit code if status is Critical
 STATE_UNKNOWN=3 # define the exit code if status is Unknown
+SOFT_FAIL=0 # define the override of STATE_CRITICAL with STATE_WARNING
 # Set path
 PATH=$PATH:/usr/sbin:/sbin
 export PATH
 ### End vars
 #########################################################################
 help="check_zpools.sh (c) 2006-2023 multiple authors\n
-Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent]\n
-Example: $0 -p ALL -w 80 -c 90"
+Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent] [-s]\n
+-s: Soft fail - report critical errors as warnings (exit code 1 instead of 2)\n
+Example: $0 -p ALL -w 80 -c 90\n
+Example: $0 -p ALL -w 80 -c 90 -s"
 #########################################################################
 # Check necessary commands are available
 for cmd in zpool [
@@ -76,12 +81,13 @@ if [ "${1}" = "--help" ] || [ "${#}" = "0" ];
 fi
 #########################################################################
 # Get user-given variables
-while getopts "p:w:c:" Input;
+while getopts "p:w:c:s" Input;
 do
        case ${Input} in
        p)      pool=${OPTARG};;
        w)      warn=${OPTARG};;
        c)      crit=${OPTARG};;
+       s)      soft_fail=1;;
        *)      echo -e "$help"
                exit $STATE_UNKNOWN
                ;;
@@ -95,6 +101,11 @@ if [ -z "$pool" ]; then echo -e "$help"; exit ${STATE_UNKNOWN}; fi
 if [[ -n $warn ]] && [[ -z $crit ]]; then echo "Both warning and critical thresholds must be set"; exit $STATE_UNKNOWN; fi
 if [[ -z $warn ]] && [[ -n $crit ]]; then echo "Both warning and critical thresholds must be set"; exit $STATE_UNKNOWN; fi
 if [[ $warn -gt $crit ]]; then echo "Warning threshold cannot be greater than critical"; exit $STATE_UNKNOWN; fi
+#########################################################################
+# Override critical exit code if soft fail is enabled
+if [[ $soft_fail -eq 1 ]]; then
+  STATE_CRITICAL=$STATE_WARNING
+fi
 #########################################################################
 # What needs to be checked?
 ## Check all pools
@@ -116,13 +127,14 @@ then
     # Check with thresholds
     if [[ -n $warn ]] && [[ -n $crit ]]
     then
-      if [ "$HEALTH" != "ONLINE" ]; then error[${p}]="$POOL health is $HEALTH // "; fcrit=1; fi
-      if [[ $CAPACITY -ge $crit ]]; then error[${p}]+="POOL $POOL usage is CRITICAL (${CAPACITY}%) // "; fcrit=1; fi
+      fcrit=$STATE_WARNING
+      if [ "$HEALTH" != "ONLINE" ]; then error[${p}]="$POOL health is $HEALTH // "; fcrit=$STATE_CRITICAL; fi
+      if [[ $CAPACITY -ge $crit ]]; then error[${p}]+="POOL $POOL usage is CRITICAL (${CAPACITY}%) // "; fcrit=$STATE_CRITICAL; fi
       if [[ $CAPACITY -ge $warn && $CAPACITY -lt $crit ]]; then error[$p]+="POOL $POOL usage is WARNING (${CAPACITY}%)"; fi
     # Check without thresholds
     else
       if [ "$HEALTH" != "ONLINE" ]
-      then error[${p}]="$POOL health is $HEALTH"; fcrit=1
+      then error[${p}]="$POOL health is $HEALTH"; fcrit=$STATE_CRITICAL
       fi
     fi
     perfdata[$p]="$POOL=${CAPACITY}% "
@@ -131,9 +143,8 @@ then
 
   if [[ ${#error[*]} -gt 0 ]]
   then
-    if [[ $fcrit -eq 1 ]]; then exit_code=2; else exit_code=1; fi
-    echo "ZFS POOL ALARM: ${error[*]}|${perfdata[*]}"; exit ${exit_code}
-  else echo "ALL ZFS POOLS OK (${POOLS[*]})|${perfdata[*]}"; exit 0
+    echo "ZFS POOL ALARM: ${error[*]}|${perfdata[*]}"; exit ${fcrit}
+  else echo "ALL ZFS POOLS OK (${POOLS[*]})|${perfdata[*]}"; exit ${STATE_OK}
   fi
 
 ## Check single pool
@@ -171,3 +182,4 @@ fi
 
 echo "UNKNOWN - Should never reach this part"
 exit ${STATE_UNKNOWN}
+
