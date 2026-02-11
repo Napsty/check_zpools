@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <https://www.gnu.org/licenses/>.
-# ########################################################################
+#########################################################################
 # Copyright (c) 2006 Aldo Fabi - First version (2006-09-01)
 # Copyright (c) 2013 Vitaliy Gladkevitch - Forked (2013-02-04)
 # Copyright (c) 2013-2023 Claudio Kuenzler - Current maintainer
@@ -76,7 +76,7 @@ then
 fi
 #########################################################################
 # Check for people who need help - we are nice ;-)
-if [[ $1 = "--help" || "${#}" == "0" ]]
+if [[ $1 == "--help" || "${#}" == "0" ]]
 then
     echo -e "$help"
     exit "$STATE_UNKNOWN"
