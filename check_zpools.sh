@@ -3,6 +3,7 @@
 #########################################################################
 # Script:     check_zpools.sh
 # Purpose:    Nagios plugin to monitor status of zfs pool
+# Doc:        http://www.claudiokuenzler.com/monitoring-plugins/check_zpools.php
 # Licence:    GNU General Public Licence (GPL) v2 http://www.gnu.org/
 #########################################################################
 # This program is free software; you can redistribute it and/or
