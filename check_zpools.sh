@@ -28,6 +28,7 @@
 # Copyright (c) 2023 @kresike - Improvement (2023-02-22)
 # Copyright (c) 2026 @joyfulrabbit - Improvement (2026-02-10)
 # Copyright (c) 2026 @numericillustration - Improvement (2026-02-11)
+# Copyright (c) 2026 @SnejPro - disk-level monitoring and performance data for errors (2026-07-20)
 #########################################################################
 # History/Changelog:
 # 2006-09-01  Original first version
@@ -49,6 +50,7 @@
 # 2026-02-10  Added check for spare disks in use
 # 2026-02-11  Fixed incongruous styles, enhanced exit checks, used vars, unified single and multiple pool checks
 #             removed unreachable code, consolidated on [[ and (( tests shellcheck error free
+# 2026-07-20  Added disk-level monitoring and performance data for errors
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
