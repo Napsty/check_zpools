@@ -12,8 +12,8 @@ set -e
 
 echo "$OUTPUT"
 
-if [ "$RET" -ne 2 ]; then
-    echo "Expected CRITICAL exit code 2, got $RET"
+if [ "$RET" -ne 3 ]; then
+    echo "Expected UNKNOWN exit code 3, got $RET"
     exit 1
 fi
 
