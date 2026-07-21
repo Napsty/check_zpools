@@ -6,7 +6,7 @@ echo "Creating warning usage"
 
 
 sudo dd \
- if=/dev/zero \
+ if=/dev/urandom \
  of=/testpool/data/warning \
  bs=1M \
  count=2800 \

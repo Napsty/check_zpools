@@ -4,7 +4,7 @@ set -euo pipefail
 echo "Creating critical usage"
 
 sudo dd \
- if=/dev/zero \
+ if=/dev/urandom \
  of=/testpool/data/critical \
  bs=1M \
  count=600 \
