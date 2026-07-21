@@ -7,9 +7,7 @@ LOOP2=$(cat /tmp/zfs-test/loop2)
 
 echo "Offlining disk"
 
-zpool offline \
-    testpool \
-    "$LOOP2"
+sudo zpool offline testpool "$LOOP2"
 
 
 sleep 5
@@ -17,14 +15,8 @@ sleep 5
 
 zpool status
 
-
-OUTPUT=$(
-    $CHECK_ZPOOLS \
-    -p testpool
-)
-
+OUTPUT=$(./check_zpools.sh -p testpool -w 50 -c 70)
 RET=$?
-
 
 echo "$OUTPUT"
 
