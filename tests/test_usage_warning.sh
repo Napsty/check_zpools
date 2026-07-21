@@ -13,23 +13,14 @@ dd \
  status=progress
 
 
-OUTPUT=$(
-    $CHECK_ZPOOLS \
-    -p testpool \
-    -w 50 \
-    -c 90
-)
-
+OUTPUT=$(./check_zpools.sh -p testpool -w 50 -c 90)
 RET=$?
 
-
 echo "$OUTPUT"
-
 
 if [ "$RET" -ne 1 ]; then
     echo "Expected WARNING exit code 1"
     exit 1
 fi
-
 
 echo "PASS"

@@ -4,8 +4,6 @@ set -euo pipefail
 
 echo "Testing health of a single ZFS pool"
 
-./check_zpools.sh -p testpool -w 80 -c 90
-
 OUTPUT=$(./check_zpools.sh -p testpool -w 80 -c 90)
 
 RET=$?
