@@ -2,10 +2,10 @@
 set -euo pipefail
 
 
-echo "Testing healthy pool"
+echo "Testing health of a single ZFS pool"
 
 
-OUTPUT=$($CHECK_ZPOOLS -p testpool)
+OUTPUT=$(./check_zpools.sh -p testpool)
 
 RET=$?
 
@@ -19,10 +19,10 @@ if [ "$RET" -ne 0 ]; then
 fi
 
 
-echo "Testing ALL pools"
+echo "Testing ALL ZFS pools"
 
 
-OUTPUT=$($CHECK_ZPOOLS -p ALL)
+OUTPUT=$(./check_zpools.sh -p ALL)
 
 RET=$?
 
