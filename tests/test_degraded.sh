@@ -15,8 +15,10 @@ sleep 5
 
 zpool status
 
+set +e
 OUTPUT=$(./check_zpools.sh -p testpool -w 50 -c 70)
 RET=$?
+set -e
 
 echo "$OUTPUT"
 
