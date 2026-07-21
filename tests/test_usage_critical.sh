@@ -7,7 +7,7 @@ sudo dd \
  if=/dev/urandom \
  of=/testpool/data/critical \
  bs=1M \
- count=1500 \
+ count=400 \
  status=progress
 
 set +e
