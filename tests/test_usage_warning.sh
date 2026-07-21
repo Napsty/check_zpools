@@ -5,7 +5,7 @@ set -euo pipefail
 echo "Creating warning usage"
 
 
-dd \
+sudo dd \
  if=/dev/zero \
  of=/testpool/data/warning \
  bs=1M \

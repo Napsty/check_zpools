@@ -3,7 +3,7 @@ set -euo pipefail
 
 echo "Creating critical usage"
 
-dd \
+sudo dd \
  if=/dev/zero \
  of=/testpool/data/critical \
  bs=1M \
