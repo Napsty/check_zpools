@@ -27,6 +27,8 @@ zpool create \
 
 
 zfs create "$POOL/data"
+zfs set compression=off "$POOL/data"
+chmod 777 /"$POOL"/data
 
 
 echo "Created pool:"
