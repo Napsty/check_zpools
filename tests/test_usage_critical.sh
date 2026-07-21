@@ -7,7 +7,7 @@ sudo dd \
  if=/dev/urandom \
  of=/testpool/data/critical \
  bs=1M \
- count=600 \
+ count=1500 \
  status=progress
 
 OUTPUT=$(./check_zpools.sh -p testpool -w 50 -c 70)

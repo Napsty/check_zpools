@@ -9,7 +9,7 @@ sudo dd \
  if=/dev/urandom \
  of=/testpool/data/warning \
  bs=1M \
- count=2800 \
+ count=1400 \
  status=progress
 
 
