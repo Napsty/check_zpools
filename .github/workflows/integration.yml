@@ -1,0 +1,56 @@
+name: ZFS integration tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  zfs-tests:
+    name: Test check_zpools.sh
+    runs-on: ubuntu-latest
+
+    env:
+      CHECK_ZPOOLS: ./check_zpools.sh
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ZFS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zfsutils-linux
+
+      - name: Load ZFS module
+        run: |
+          sudo modprobe zfs
+          zpool version
+
+      - name: Create test pool
+        run: |
+          sudo ./tests/create_pool.sh
+
+      - name: Test healthy pool
+        run: |
+          ./tests/test_ok.sh
+
+      - name: Test usage warning
+        run: |
+          ./tests/test_usage_warning.sh
+
+      - name: Test usage critical
+        run: |
+          ./tests/test_usage_critical.sh
+
+      - name: Test degraded pool
+        run: |
+          ./tests/test_degraded.sh
+
+      - name: Test missing pool detection
+        run: |
+          ./tests/test_missing_pool.sh
+
+      - name: Cleanup
+        if: always()
+        run: |
+          sudo ./tests/cleanup.sh
