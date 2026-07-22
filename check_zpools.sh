@@ -51,7 +51,7 @@
 # 2026-02-11  Fixed incongruous styles, enhanced exit checks, used vars, unified single and multiple pool checks
 #             removed unreachable code, consolidated on [[ and (( tests shellcheck error free
 # 2026-07-20  Added disk-level monitoring and performance data for errors
-# 2026-07-22  Bugfix in zpool json handling (OpenZFS 2.2.0+), Fixed help output
+# 2026-07-22  Bugfix in zpool json handling, fixed help output, fixed critical threshold check
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
@@ -243,11 +243,11 @@ do
     fi
 
     # Check that capacity is with thresholds
-    if (( CAPACITY > crit ))
+    if (( CAPACITY >= crit ))
     then
         error["$p"]+="POOL ${POOLS[$p]} usage is CRITICAL (${CAPACITY}%)"
         fcrit=1
-    elif (( CAPACITY > warn )) && (( CAPACITY < crit ))
+    elif (( CAPACITY >= warn ))
     then
         error["$p"]+="POOL ${POOLS[$p]} usage is WARNING (${CAPACITY}%)"
     fi
