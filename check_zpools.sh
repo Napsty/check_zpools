@@ -21,7 +21,7 @@
 #########################################################################
 # Copyright (c) 2006 Aldo Fabi - First version (2006-09-01)
 # Copyright (c) 2013 Vitaliy Gladkevitch - Forked (2013-02-04)
-# Copyright (c) 2013-2023 Claudio Kuenzler - Current maintainer
+# Copyright (c) 2013-2026 Claudio Kuenzler - Current maintainer
 # Copyright (c) 2016 Per von Zweigbergk - Various fixes (2016-10-12)
 # Copyright (c) 2022 @waoki - Trap zpool command errors (2022-03-01)
 # Copyright (c) 2022 @mrdsam - Improvement (2022-05-24)
@@ -51,6 +51,7 @@
 # 2026-02-11  Fixed incongruous styles, enhanced exit checks, used vars, unified single and multiple pool checks
 #             removed unreachable code, consolidated on [[ and (( tests shellcheck error free
 # 2026-07-20  Added disk-level monitoring and performance data for errors
+# 2026-07-22  Bugfix in zpool json handling (OpenZFS 2.2.0+), Fixed help output
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
@@ -64,12 +65,10 @@ declare -a perfdata
 PATH="${PATH}:/usr/sbin:/sbin"
 export PATH
 ### End vars
-
 #########################################################################
 help="check_zpools.sh (c) 2006-2026 multiple authors\n
-Usage: $0 -p (poolname|ALL) [-w warnpercent] [-c critpercent]\n
+Usage: $0 -p (poolname|ALL) -w warnpercent -c critpercent\n
 Example: $0 -p ALL -w 80 -c 90"
-
 #########################################################################
 # Check necessary commands are available
 if ! which zpool 1>/dev/null
@@ -78,12 +77,17 @@ then
     exit "$STATE_UNKNOWN"
 fi
 
-# Check if jq is available
-if ! which jq 1>/dev/null
+# Check if jq is available and zpool supports JSON output (OpenZFS 2.2.0+)
+JQ_AVAILABLE=0
+if which jq 1>/dev/null
 then
-    JQ_AVAILABLE=0
-else
-    JQ_AVAILABLE=1
+    # Test if zpool supports -j (JSON output) - requires OpenZFS 2.2.0+
+    if zpool status -j 2>&1 | grep -q "invalid option"
+    then
+        JQ_AVAILABLE=0
+    else
+        JQ_AVAILABLE=1
+    fi
 fi
 #########################################################################
 # Check for people who need help - we are nice ;-)
