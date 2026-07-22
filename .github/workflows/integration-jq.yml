@@ -7,7 +7,7 @@ on:
 
 jobs:
   zfs-tests:
-    name: Test check_zpools.sh
+    name: Test check_zpools.sh with jq
     runs-on: ubuntu-26.04
 
     env:
