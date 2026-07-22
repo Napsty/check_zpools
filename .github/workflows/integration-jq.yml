@@ -1,4 +1,4 @@
-name: ZFS integration tests
+name: ZFS integration tests (with jq)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 jobs:
   zfs-tests:
     name: Test check_zpools.sh
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     env:
       CHECK_ZPOOLS: ./check_zpools.sh
@@ -20,7 +20,7 @@ jobs:
       - name: Install ZFS
         run: |
           sudo apt-get update
-          sudo apt-get install -y zfsutils-linux
+          sudo apt-get install -y zfsutils-linux jq
 
       - name: Load ZFS module
         run: |
