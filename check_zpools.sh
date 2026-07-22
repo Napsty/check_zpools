@@ -51,7 +51,8 @@
 # 2026-02-11  Fixed incongruous styles, enhanced exit checks, used vars, unified single and multiple pool checks
 #             removed unreachable code, consolidated on [[ and (( tests shellcheck error free
 # 2026-07-20  Added disk-level monitoring and performance data for errors
-# 2026-07-22  Bugfix in zpool json handling, fixed help output, fixed critical threshold check
+# 2026-07-22  Bugfix in zpool json handling, fixed help output (thresholds are mandatory),
+#             fixed critical threshold check, improved degraded pool output
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
@@ -210,7 +211,7 @@ do
 
                     if [[ $DISK_HEALTH != "ONLINE" ]]
                     then
-                        error["$p"]+="POOL ${POOLS[$p]} has unhealthy disk ${DISK_NAME} with state $DISK_HEALTH"
+                        error["$p"]+=" - POOL ${POOLS[$p]} has unhealthy disk ${DISK_NAME} with state $DISK_HEALTH"
                         fcrit=1
                     fi
                 else
