@@ -211,7 +211,7 @@ do
 
                     if [[ $DISK_HEALTH != "ONLINE" ]]
                     then
-                        error["$p"]+=" - POOL ${POOLS[$p]} has unhealthy disk ${DISK_NAME} with state $DISK_HEALTH -"
+                        error["$p"]+=" - POOL ${POOLS[$p]} has unhealthy disk ${DISK_NAME} with state $DISK_HEALTH. "
                         fcrit=1
                     fi
                 else
