@@ -1,7 +1,7 @@
 name: ZFS integration tests (with jq)
 
 on:
-  push:
+  #push:
   pull_request:
   workflow_dispatch:
 
