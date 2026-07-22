@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+zpool status
+
+zpool status -j
 
 echo "Testing health of a single ZFS pool"
 
