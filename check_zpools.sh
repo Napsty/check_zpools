@@ -29,6 +29,7 @@
 # Copyright (c) 2026 @joyfulrabbit - Improvement (2026-02-10)
 # Copyright (c) 2026 @numericillustration - Improvement (2026-02-11)
 # Copyright (c) 2026 @SnejPro - disk-level monitoring and performance data for errors (2026-07-20)
+# Copyright (c) 2025 @amahr - Add soft fail option (2025-11-25)
 #########################################################################
 # History/Changelog:
 # 2006-09-01  Original first version
@@ -53,6 +54,7 @@
 # 2026-07-20  Added disk-level monitoring and performance data for errors
 # 2026-07-22  Bugfix in zpool json handling, fixed help output (thresholds are mandatory),
 #             fixed critical threshold check, improved degraded pool output
+# 2025-11-25  Add soft fail option
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
@@ -62,14 +64,17 @@ STATE_UNKNOWN=3 # define the exit code if status is Unknown
 declare -a POOLS
 declare -a error
 declare -a perfdata
+SOFT_FAIL=0 # override STATE_CRITICAL with STATE_WARNING
 # Set path
 PATH="${PATH}:/usr/sbin:/sbin"
 export PATH
 ### End vars
 #########################################################################
 help="check_zpools.sh (c) 2006-2026 multiple authors\n
-Usage: $0 -p (poolname|ALL) -w warnpercent -c critpercent\n
-Example: $0 -p ALL -w 80 -c 90"
+Usage: $0 -p (poolname|ALL) -w warnpercent -c critpercent [-s]\n
+-s: Soft fail - report critical errors as warnings (exit code 1 instead of 2)\n
+Example: $0 -p ALL -w 80 -c 90\n
+Example: $0 -p ALL -w 80 -c 90 -s"
 #########################################################################
 # Check necessary commands are available
 if ! which zpool 1>/dev/null
@@ -99,12 +104,13 @@ then
 fi
 #########################################################################
 # Get user-given variables
-while getopts "p:w:c:" Input;
+while getopts "p:w:c:s" Input;
 do
     case "$Input" in
     p)      pool="$OPTARG" ;;
     w)      warn="$OPTARG" ;;
     c)      crit="$OPTARG" ;;
+    s)      SOFT_FAIL=1 ;;
     *)      echo -e "$help"
             exit "$STATE_UNKNOWN"
             ;;
@@ -130,6 +136,12 @@ if (( warn > crit ))
 then
     echo "Warning threshold cannot be greater than critical"
     exit "$STATE_UNKNOWN"
+fi
+#########################################################################
+# Override critical exit code if soft fail is enabled
+if (( SOFT_FAIL == 1 ))
+then
+    STATE_CRITICAL=$STATE_WARNING
 fi
 #########################################################################
 # What needs to be checked?
