@@ -29,6 +29,7 @@
 # Copyright (c) 2026 @joyfulrabbit - Improvement (2026-02-10)
 # Copyright (c) 2026 @numericillustration - Improvement (2026-02-11)
 # Copyright (c) 2026 @SnejPro - disk-level monitoring and performance data for errors (2026-07-20)
+# Copyright (c) 2026 @4phips - Fix in zpool json handling, handling multiple raids in a zpool (2026-07-22)
 #########################################################################
 # History/Changelog:
 # 2006-09-01  Original first version
@@ -53,6 +54,7 @@
 # 2026-07-20  Added disk-level monitoring and performance data for errors
 # 2026-07-22  Bugfix in zpool json handling, fixed help output (thresholds are mandatory),
 #             fixed critical threshold check, improved degraded pool output
+# 2026-07-29  Fixed json parsing for vdevs, handling multiple raids in a zpool
 #########################################################################
 ### Begin vars
 STATE_OK=0 # define the exit code if status is OK
@@ -193,17 +195,28 @@ do
         POOL_STATUS_JSON=$(zpool status "${POOLS[$p]}" -j --json-int)
 
         check_vdev () {
-            VDEV_TYPE=$(echo "${POOL_STATUS_JSON}" | jq -r "${1}.vdev_type")
+            local NODE_PATH="$1"
+            local VDEV_TYPE
+            local DISK_HEALTH
+            local DISK_NAME
+            local DISK_READ_ERRORS
+            local DISK_WRITE_ERRORS
+            local DISK_CHECKSUM_ERRORS
+            local CHILD_PATH
+            local CHILDREN
+            local VDEV
+
+            VDEV_TYPE=$(echo "${POOL_STATUS_JSON}" | jq -r "${NODE_PATH}.vdev_type")
             if [[ $VDEV_TYPE != null ]]
             then
                 if [[ $VDEV_TYPE == "disk" ]]
                 then
-                    DISK_HEALTH=$(echo "${POOL_STATUS_JSON}" | jq -r "${1}.state")
-                    DISK_NAME=$(echo "${POOL_STATUS_JSON}" | jq -r "${1}.name")
+                    DISK_HEALTH=$(echo "${POOL_STATUS_JSON}" | jq -r "${NODE_PATH}.state")
+                    DISK_NAME=$(echo "${POOL_STATUS_JSON}" | jq -r "${NODE_PATH}.name")
 
-                    DISK_READ_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${1}.read_errors")
-                    DISK_WRITE_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${1}.write_errors")
-                    DISK_CHECKSUM_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${1}.checksum_errors")
+                    DISK_READ_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${NODE_PATH}.read_errors")
+                    DISK_WRITE_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${NODE_PATH}.write_errors")
+                    DISK_CHECKSUM_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${NODE_PATH}.checksum_errors")
 
                     perfdata+=("${POOLS[$p]}---disk---${DISK_NAME}---READ-ERRORS=${DISK_READ_ERRORS}")
                     perfdata+=("${POOLS[$p]}---disk---${DISK_NAME}---WRITE-ERRORS=${DISK_WRITE_ERRORS}")
@@ -215,11 +228,11 @@ do
                         fcrit=1
                     fi
                 else
-                    DISK_NAME=$(echo "${POOL_STATUS_JSON}" | jq -r "${1}.name")
+                    DISK_NAME=$(echo "${POOL_STATUS_JSON}" | jq -r "${NODE_PATH}.name")
 
-                    DISK_READ_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${1}.read_errors")
-                    DISK_WRITE_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${1}.write_errors")
-                    DISK_CHECKSUM_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${1}.checksum_errors")
+                    DISK_READ_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${NODE_PATH}.read_errors")
+                    DISK_WRITE_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${NODE_PATH}.write_errors")
+                    DISK_CHECKSUM_ERRORS=$(echo "${POOL_STATUS_JSON}" | jq -r "${NODE_PATH}.checksum_errors")
 
                     perfdata+=("${POOLS[$p]}---${VDEV_TYPE}---${DISK_NAME}---READ-ERRORS=${DISK_READ_ERRORS}")
                     perfdata+=("${POOLS[$p]}---${VDEV_TYPE}---${DISK_NAME}---WRITE-ERRORS=${DISK_WRITE_ERRORS}")
@@ -227,17 +240,17 @@ do
                 fi
             fi
 
-            if ! $(echo "${POOL_STATUS_JSON}" | jq "${1} | has(\"vdevs\")")
+            if ! $(echo "${POOL_STATUS_JSON}" | jq "${NODE_PATH} | has(\"vdevs\")")
             then
                 return 0
             fi
 
-            VDEV_PATH="${1}.vdevs"
-            VDEVS=$(echo "${POOL_STATUS_JSON}" | jq "${VDEV_PATH} | keys")
+            CHILD_PATH="${NODE_PATH}.vdevs"
+            CHILDREN=$(echo "${POOL_STATUS_JSON}" | jq "${CHILD_PATH} | keys")
 
             while read -r VDEV; do
-                check_vdev "${VDEV_PATH}.${VDEV}"
-            done < <(jq -c '.[]' <<< "$VDEVS")
+                check_vdev "${CHILD_PATH}.${VDEV}"
+            done < <(jq -c '.[]' <<< "${CHILDREN}")
         }
 
         check_vdev ".pools.${POOLS[$p]}"
